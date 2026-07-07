@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Snake Arcade",
-    "slug": "snake-arcade",
+    "name": "RHGLOBAL Point",
+    "slug": "rhglobal-point",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.snakearcade"
+      "bundleIdentifier": "com.rhglobal.point"
     },
     "android": {
-      "package": "com.example.snakearcade",
+      "package": "com.rhglobal.point",
       "adaptiveIcon": {
-        "backgroundColor": "#0f172a"
+        "backgroundColor": "#06111f"
       }
     },
     "web": {

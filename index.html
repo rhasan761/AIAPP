@@ -3,51 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Snake Arcade</title>
+    <meta name="description" content="RHGLOBAL Point sells smart gadgets for the Bangladesh market with local delivery, bKash, Nagad, and warranty support." />
+    <title>RHGLOBAL Point | Smart Gadgets Bangladesh</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="game-shell">
-      <section class="hero" aria-labelledby="game-title">
-        <p class="eyebrow">Classic arcade</p>
-        <h1 id="game-title">Snake Play Game</h1>
-        <p class="intro">Guide the snake, eat glowing apples, and avoid crashing into the wall or yourself.</p>
-      </section>
-
-      <section class="score-panel" aria-label="Game statistics">
-        <div>
-          <span>Score</span>
-          <strong id="score">0</strong>
-        </div>
-        <div>
-          <span>Best</span>
-          <strong id="best-score">0</strong>
-        </div>
-        <div>
-          <span>Status</span>
-          <strong id="status">Ready</strong>
+    <main class="storefront-shell">
+      <section class="hero" aria-labelledby="store-title">
+        <p class="eyebrow">RHGLOBAL Point</p>
+        <h1 id="store-title">Smart gadgets for Bangladesh</h1>
+        <p class="intro">Shop watches, earbuds, security cameras, and mobile accessories with local payment options and nationwide courier support.</p>
+        <div class="actions">
+          <a href="#products">Shop deals</a>
+          <a class="ghost" href="https://wa.me/8801000000000">WhatsApp order</a>
         </div>
       </section>
 
-      <section class="board-card">
-        <canvas id="game-board" width="480" height="480" aria-label="Snake game board"></canvas>
-        <div class="controls">
-          <button id="start-button" type="button">Start Game</button>
-          <button id="pause-button" type="button">Pause</button>
-          <button id="reset-button" type="button">Reset</button>
-        </div>
+      <section class="trust-grid" aria-label="Store promises">
+        <span>Cash on delivery</span>
+        <span>bKash & Nagad</span>
+        <span>7-day replacement</span>
+        <span>BD warranty support</span>
       </section>
 
-      <section class="help-card" aria-labelledby="how-to-play">
-        <h2 id="how-to-play">How to play</h2>
-        <ul>
-          <li>Use arrow keys or WASD to move.</li>
-          <li>On touch screens, swipe in the direction you want to go.</li>
-          <li>Press Space to pause or resume.</li>
-        </ul>
+      <section id="products" class="products" aria-labelledby="products-title">
+        <p class="eyebrow">Featured collection</p>
+        <h2 id="products-title">Popular smart gadgets</h2>
+        <div class="product-grid">
+          <article class="product-card"><strong>⌚ PulseFit Smart Watch Pro</strong><p>Bangla notifications, 7-day battery, and heart-rate tracking.</p><b>৳5,490</b></article>
+          <article class="product-card"><strong>🎧 AeroPods ANC Wireless Earbuds</strong><p>Noise cancellation, gaming mode, and USB-C fast charging.</p><b>৳3,290</b></article>
+          <article class="product-card"><strong>📹 SecureView 360 Wi-Fi Camera</strong><p>Night vision, two-way talk, and motion alerts for homes and shops.</p><b>৳4,190</b></article>
+          <article class="product-card"><strong>🔋 20,000mAh Fast Power Bank</strong><p>22.5W fast output with Type-C input and dual USB ports.</p><b>৳2,790</b></article>
+        </div>
       </section>
     </main>
-
-    <script src="script.js"></script>
   </body>
 </html>

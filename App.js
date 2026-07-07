@@ -1,362 +1,226 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-const BOARD_SIZE = 18;
-const INITIAL_SNAKE = [
-  { x: 8, y: 9 },
-  { x: 7, y: 9 },
-  { x: 6, y: 9 },
+const products = [
+  {
+    id: 'watch-pro',
+    name: 'PulseFit Smart Watch Pro',
+    category: 'Wearables',
+    price: 5490,
+    oldPrice: 6990,
+    badge: 'Best seller',
+    icon: '⌚',
+    details: 'Bangla notifications, 7-day battery, heart-rate tracking, and IP68 splash resistance.',
+  },
+  {
+    id: 'buds-air',
+    name: 'AeroPods ANC Wireless Earbuds',
+    category: 'Audio',
+    price: 3290,
+    oldPrice: 4290,
+    badge: 'New arrival',
+    icon: '🎧',
+    details: 'Active noise cancellation, low-latency gaming mode, and USB-C fast charging case.',
+  },
+  {
+    id: 'home-cam',
+    name: 'SecureView 360 Wi-Fi Camera',
+    category: 'Smart Home',
+    price: 4190,
+    oldPrice: 4990,
+    badge: 'Home safety',
+    icon: '📹',
+    details: 'Night vision, two-way talk, motion alerts, and easy setup for apartments and shops.',
+  },
+  {
+    id: 'power-bank',
+    name: '20,000mAh Fast Power Bank',
+    category: 'Accessories',
+    price: 2790,
+    oldPrice: 3490,
+    badge: 'Hot deal',
+    icon: '🔋',
+    details: '22.5W fast output, dual USB ports, Type-C input, and flight-friendly compact build.',
+  },
 ];
-const INITIAL_DIRECTION = { x: 1, y: 0, label: 'RIGHT' };
-const DIRECTIONS = {
-  UP: { x: 0, y: -1, label: 'UP' },
-  DOWN: { x: 0, y: 1, label: 'DOWN' },
-  LEFT: { x: -1, y: 0, label: 'LEFT' },
-  RIGHT: { x: 1, y: 0, label: 'RIGHT' },
-};
-const TICK_RATE_MS = 140;
 
-function positionsMatch(a, b) {
-  return a.x === b.x && a.y === b.y;
-}
+const categories = ['All', 'Wearables', 'Audio', 'Smart Home', 'Accessories'];
+const formatter = new Intl.NumberFormat('en-BD');
 
-function createFood(snake) {
-  const occupied = new Set(snake.map((part) => `${part.x},${part.y}`));
-  const openCells = [];
-
-  for (let y = 0; y < BOARD_SIZE; y += 1) {
-    for (let x = 0; x < BOARD_SIZE; x += 1) {
-      if (!occupied.has(`${x},${y}`)) {
-        openCells.push({ x, y });
-      }
-    }
-  }
-
-  if (openCells.length === 0) {
-    return null;
-  }
-
-  return openCells[Math.floor(Math.random() * openCells.length)];
-}
-
-function getInitialState() {
-  const snake = [...INITIAL_SNAKE];
-  return {
-    snake,
-    food: createFood(snake),
-    direction: INITIAL_DIRECTION,
-    nextDirection: INITIAL_DIRECTION,
-    score: 0,
-    bestScore: 0,
-    isPaused: false,
-    isGameOver: false,
-  };
+function formatPrice(amount) {
+  return `৳${formatter.format(amount)}`;
 }
 
 export default function App() {
-  const [game, setGame] = useState(getInitialState);
-  const directionRef = useRef(INITIAL_DIRECTION);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [query, setQuery] = useState('');
+  const [cart, setCart] = useState([]);
 
-  const resetGame = useCallback(() => {
-    const nextGame = getInitialState();
-    setGame((current) => ({ ...nextGame, bestScore: current.bestScore }));
-    directionRef.current = INITIAL_DIRECTION;
-  }, []);
+  const visibleProducts = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
 
-  const changeDirection = useCallback((direction) => {
-    setGame((current) => {
-      const currentDirection = directionRef.current;
-      const isReverse = currentDirection.x + direction.x === 0 && currentDirection.y + direction.y === 0;
-
-      if (isReverse || current.isGameOver) {
-        return current;
-      }
-
-      return { ...current, nextDirection: direction };
+    return products.filter((product) => {
+      const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
+      const matchesSearch = !normalizedQuery || `${product.name} ${product.category} ${product.details}`.toLowerCase().includes(normalizedQuery);
+      return matchesCategory && matchesSearch;
     });
-  }, []);
+  }, [activeCategory, query]);
 
-  const togglePause = useCallback(() => {
-    setGame((current) => {
-      if (current.isGameOver) {
-        return current;
-      }
-
-      return { ...current, isPaused: !current.isPaused };
-    });
-  }, []);
-
-  useEffect(() => {
-    if (game.isPaused || game.isGameOver) {
-      return undefined;
-    }
-
-    const interval = setInterval(() => {
-      setGame((current) => {
-        if (current.isPaused || current.isGameOver) {
-          return current;
-        }
-
-        const direction = current.nextDirection;
-        directionRef.current = direction;
-        const head = current.snake[0];
-        const nextHead = { x: head.x + direction.x, y: head.y + direction.y };
-        const hasHitWall = nextHead.x < 0 || nextHead.y < 0 || nextHead.x >= BOARD_SIZE || nextHead.y >= BOARD_SIZE;
-        const hasHitBody = current.snake.some((part, index) => index !== current.snake.length - 1 && positionsMatch(part, nextHead));
-
-        if (hasHitWall || hasHitBody) {
-          return {
-            ...current,
-            isGameOver: true,
-            bestScore: Math.max(current.bestScore, current.score),
-          };
-        }
-
-        const ateFood = current.food && positionsMatch(nextHead, current.food);
-        const snake = [nextHead, ...current.snake];
-
-        if (!ateFood) {
-          snake.pop();
-        }
-
-        const score = ateFood ? current.score + 1 : current.score;
-        const food = ateFood ? createFood(snake) : current.food;
-
-        return {
-          ...current,
-          snake,
-          direction,
-          score,
-          bestScore: Math.max(current.bestScore, score),
-          food,
-          isGameOver: food === null,
-        };
-      });
-    }, TICK_RATE_MS);
-
-    return () => clearInterval(interval);
-  }, [game.isPaused, game.isGameOver]);
-
-  const cells = useMemo(() => {
-    const snakeMap = new Map(game.snake.map((part, index) => [`${part.x},${part.y}`, index]));
-    const items = [];
-
-    for (let y = 0; y < BOARD_SIZE; y += 1) {
-      for (let x = 0; x < BOARD_SIZE; x += 1) {
-        const key = `${x},${y}`;
-        const snakeIndex = snakeMap.get(key);
-        const isHead = snakeIndex === 0;
-        const isSnake = snakeIndex !== undefined;
-        const isFood = game.food && positionsMatch(game.food, { x, y });
-
-        items.push(
-          <View
-            key={key}
-            style={[
-              styles.cell,
-              isSnake && styles.snakeCell,
-              isHead && styles.snakeHead,
-              isFood && styles.foodCell,
-            ]}
-          />,
-        );
-      }
-    }
-
-    return items;
-  }, [game.food, game.snake]);
+  const cartTotal = cart.reduce((total, item) => total + item.price, 0);
 
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Snake Arcade</Text>
-        <Text style={styles.subtitle}>Eat apples, grow longer, and avoid crashes.</Text>
-      </View>
-
-      <View style={styles.scoreRow}>
-        <View style={styles.scoreCard}>
-          <Text style={styles.scoreLabel}>Score</Text>
-          <Text style={styles.scoreValue}>{game.score}</Text>
+      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+        <View style={styles.navbar}>
+          <View>
+            <Text style={styles.brandKicker}>RHGLOBAL Point</Text>
+            <Text style={styles.brand}>Smart gadgets for Bangladesh</Text>
+          </View>
+          <View style={styles.cartPill}>
+            <Text style={styles.cartText}>Cart {cart.length}</Text>
+          </View>
         </View>
-        <View style={styles.scoreCard}>
-          <Text style={styles.scoreLabel}>Best</Text>
-          <Text style={styles.scoreValue}>{game.bestScore}</Text>
+
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>Launch offer • Dhaka delivery in 24-48 hours</Text>
+            <Text style={styles.heroTitle}>Upgrade everyday life with trusted smart gadgets.</Text>
+            <Text style={styles.heroText}>
+              RHGLOBAL Point brings wearables, audio, smart home security, and mobile accessories with fair local pricing, bKash/Nagad-ready checkout, and nationwide courier support.
+            </Text>
+            <View style={styles.heroActions}>
+              <TouchableOpacity style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>Shop Deals</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>WhatsApp Order</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.heroCard}>
+            <Text style={styles.heroIcon}>📱</Text>
+            <Text style={styles.heroCardTitle}>Free setup help</Text>
+            <Text style={styles.heroCardText}>Our team helps pair watches, earbuds, and cameras before dispatch.</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.board}>{cells}</View>
-
-      <Text style={styles.stateText}>
-        {game.isGameOver ? 'Game over! Tap Restart.' : game.isPaused ? 'Paused' : `Moving ${game.direction.label.toLowerCase()}`}
-      </Text>
-
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlButton} onPress={() => changeDirection(DIRECTIONS.UP)}>
-          <Text style={styles.controlText}>↑</Text>
-        </TouchableOpacity>
-        <View style={styles.horizontalControls}>
-          <TouchableOpacity style={styles.controlButton} onPress={() => changeDirection(DIRECTIONS.LEFT)}>
-            <Text style={styles.controlText}>←</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton} onPress={() => changeDirection(DIRECTIONS.DOWN)}>
-            <Text style={styles.controlText}>↓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton} onPress={() => changeDirection(DIRECTIONS.RIGHT)}>
-            <Text style={styles.controlText}>→</Text>
-          </TouchableOpacity>
+        <View style={styles.trustGrid}>
+          {['Cash on delivery', 'bKash & Nagad', '7-day replacement', 'BD warranty support'].map((item) => (
+            <View key={item} style={styles.trustCard}>
+              <Text style={styles.trustText}>{item}</Text>
+            </View>
+          ))}
         </View>
-      </View>
 
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.secondaryButton} onPress={togglePause}>
-          <Text style={styles.secondaryButtonText}>{game.isPaused ? 'Resume' : 'Pause'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.primaryButton} onPress={resetGame}>
-          <Text style={styles.primaryButtonText}>Restart</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionKicker}>Featured collection</Text>
+            <Text style={styles.sectionTitle}>Popular smart gadgets</Text>
+          </View>
+          <Text style={styles.totalText}>{formatPrice(cartTotal)} selected</Text>
+        </View>
+
+        <TextInput
+          style={styles.search}
+          placeholder="Search watches, earbuds, cameras..."
+          placeholderTextColor="#7c8aa0"
+          value={query}
+          onChangeText={setQuery}
+        />
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[styles.categoryChip, activeCategory === category && styles.categoryChipActive]}
+              onPress={() => setActiveCategory(category)}
+            >
+              <Text style={[styles.categoryText, activeCategory === category && styles.categoryTextActive]}>{category}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.productGrid}>
+          {visibleProducts.map((product) => (
+            <View key={product.id} style={styles.productCard}>
+              <View style={styles.productTopRow}>
+                <Text style={styles.productIcon}>{product.icon}</Text>
+                <Text style={styles.badge}>{product.badge}</Text>
+              </View>
+              <Text style={styles.categoryLabel}>{product.category}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productDetails}>{product.details}</Text>
+              <View style={styles.priceRow}>
+                <Text style={styles.price}>{formatPrice(product.price)}</Text>
+                <Text style={styles.oldPrice}>{formatPrice(product.oldPrice)}</Text>
+              </View>
+              <TouchableOpacity style={styles.addButton} onPress={() => setCart((current) => [...current, product])}>
+                <Text style={styles.addButtonText}>Add to cart</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.orderPanel}>
+          <Text style={styles.orderTitle}>Ready for Bangladesh-wide orders</Text>
+          <Text style={styles.orderText}>Add SSLCommerz or manual bKash/Nagad confirmation next, then connect inventory and courier zones for a complete production storefront.</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#020617',
-    padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  title: {
-    color: '#f8fafc',
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  subtitle: {
-    color: '#94a3b8',
-    fontSize: 15,
-    textAlign: 'center',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  scoreCard: {
-    minWidth: 110,
-    alignItems: 'center',
-    borderRadius: 18,
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-    borderWidth: 1,
-    paddingVertical: 12,
-  },
-  scoreLabel: {
-    color: '#94a3b8',
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  scoreValue: {
-    color: '#e2e8f0',
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  board: {
-    width: '100%',
-    maxWidth: 360,
-    aspectRatio: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    overflow: 'hidden',
-    borderRadius: 22,
-    backgroundColor: '#0f172a',
-    borderColor: '#334155',
-    borderWidth: 4,
-  },
-  cell: {
-    width: `${100 / BOARD_SIZE}%`,
-    aspectRatio: 1,
-    borderColor: '#172033',
-    borderWidth: 0.5,
-  },
-  snakeCell: {
-    backgroundColor: '#22c55e',
-    borderColor: '#86efac',
-  },
-  snakeHead: {
-    backgroundColor: '#a3e635',
-  },
-  foodCell: {
-    backgroundColor: '#ef4444',
-    borderRadius: 999,
-    borderColor: '#fecaca',
-    borderWidth: 2,
-  },
-  stateText: {
-    color: '#cbd5e1',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  controls: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  horizontalControls: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  controlButton: {
-    width: 72,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: '#1e293b',
-    borderColor: '#475569',
-    borderWidth: 1,
-  },
-  controlText: {
-    color: '#f8fafc',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  actionRow: {
-    width: '100%',
-    maxWidth: 360,
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  primaryButton: {
-    flex: 1,
-    alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: '#22c55e',
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    color: '#052e16',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  secondaryButton: {
-    flex: 1,
-    alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: '#334155',
-    paddingVertical: 16,
-  },
-  secondaryButtonText: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: '900',
-  },
+  screen: { flex: 1, backgroundColor: '#06111f' },
+  page: { padding: 20, paddingBottom: 40, gap: 20 },
+  navbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
+  brandKicker: { color: '#38f2ad', fontSize: 22, fontWeight: '900' },
+  brand: { color: '#a8b7ca', fontSize: 13, marginTop: 2 },
+  cartPill: { backgroundColor: '#10233a', borderColor: '#21405f', borderRadius: 999, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 10 },
+  cartText: { color: '#f8fafc', fontWeight: '800' },
+  hero: { backgroundColor: '#0b1b2d', borderColor: '#1f3b57', borderRadius: 30, borderWidth: 1, gap: 18, padding: 24 },
+  heroCopy: { gap: 12 },
+  eyebrow: { color: '#38f2ad', fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  heroTitle: { color: '#f8fbff', fontSize: 38, fontWeight: '900', lineHeight: 42 },
+  heroText: { color: '#b7c6d8', fontSize: 16, lineHeight: 24 },
+  heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  primaryButton: { backgroundColor: '#38f2ad', borderRadius: 999, paddingHorizontal: 20, paddingVertical: 14 },
+  primaryButtonText: { color: '#052019', fontWeight: '900' },
+  secondaryButton: { backgroundColor: '#14263c', borderColor: '#2d4b6b', borderRadius: 999, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 14 },
+  secondaryButtonText: { color: '#e8f1fb', fontWeight: '900' },
+  heroCard: { backgroundColor: '#10233a', borderRadius: 24, padding: 18 },
+  heroIcon: { fontSize: 54 },
+  heroCardTitle: { color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: 8 },
+  heroCardText: { color: '#b7c6d8', marginTop: 6, lineHeight: 20 },
+  trustGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  trustCard: { backgroundColor: '#0f2035', borderRadius: 16, flexGrow: 1, padding: 14 },
+  trustText: { color: '#d8e7f7', fontWeight: '800', textAlign: 'center' },
+  sectionHeader: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  sectionKicker: { color: '#38f2ad', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  sectionTitle: { color: '#f8fbff', fontSize: 26, fontWeight: '900' },
+  totalText: { color: '#a8b7ca', fontWeight: '800' },
+  search: { backgroundColor: '#0f2035', borderColor: '#223d5b', borderRadius: 18, borderWidth: 1, color: '#f8fbff', fontSize: 16, paddingHorizontal: 16, paddingVertical: 14 },
+  categoryRow: { gap: 10, paddingRight: 20 },
+  categoryChip: { backgroundColor: '#10233a', borderColor: '#24415f', borderRadius: 999, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 10 },
+  categoryChipActive: { backgroundColor: '#38f2ad' },
+  categoryText: { color: '#c6d5e7', fontWeight: '800' },
+  categoryTextActive: { color: '#052019' },
+  productGrid: { gap: 16 },
+  productCard: { backgroundColor: '#0f2035', borderColor: '#223d5b', borderRadius: 24, borderWidth: 1, gap: 10, padding: 18 },
+  productTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  productIcon: { fontSize: 46 },
+  badge: { backgroundColor: '#1c3d32', borderRadius: 999, color: '#6ff5bd', fontSize: 12, fontWeight: '900', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6 },
+  categoryLabel: { color: '#38f2ad', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  productName: { color: '#ffffff', fontSize: 21, fontWeight: '900' },
+  productDetails: { color: '#a8b7ca', lineHeight: 20 },
+  priceRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  price: { color: '#ffffff', fontSize: 23, fontWeight: '900' },
+  oldPrice: { color: '#72839a', fontSize: 15, textDecorationLine: 'line-through' },
+  addButton: { alignItems: 'center', backgroundColor: '#38f2ad', borderRadius: 16, marginTop: 4, paddingVertical: 14 },
+  addButtonText: { color: '#052019', fontWeight: '900' },
+  orderPanel: { backgroundColor: '#10233a', borderColor: '#24415f', borderRadius: 24, borderWidth: 1, padding: 20 },
+  orderTitle: { color: '#ffffff', fontSize: 22, fontWeight: '900' },
+  orderText: { color: '#a8b7ca', lineHeight: 22, marginTop: 8 },
 });
